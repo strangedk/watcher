@@ -13,7 +13,7 @@
  */
 const watch = (obj, prop, options = {}) => {
     let cache = {};
-    const sourcePropsDescriptor = Object.getOwnPropertyDescriptor(obj, prop);    
+    const sourcePropsDescriptor = Object.getOwnPropertyDescriptor(obj, prop) ?? {};    
 
     const unwatch = () => {
         if (!cache) return;
@@ -38,11 +38,19 @@ const watch = (obj, prop, options = {}) => {
     Object.defineProperty(obj, prop, {
         enumerable: sourcePropsDescriptor.enumerable,
         get() {
-            console.log('%c[watcher]', 'background: #222; color: #ba55fa', `reading the property ${prop} is ${cache[prop]}`,);
+            console.log(
+                '%c[watcher]',
+                'background: #222; color: #ba55fa',
+                `reading the property ${prop} is ${cache[prop]}`,
+                );
             return cache[prop];
         },
         set(value) {
-            const log = (prefix='') => console.log('%c[watcher'+(prefix===''?'':' ')+prefix+']', 'background: #222; color: #bada55', `changing the property ${prop} to ${value}`,);
+            const log = (prefix='') => console.log(
+                '%c[watcher'+(prefix===''?'':' ')+prefix+']',
+                'background: #222; color: #bada55',
+                `changing the property ${prop} from ${cache[prop]} to ${value}`,
+                );
             const assign = () => cache[prop] = value;
 
             if (Object.keys(options).includes('predicate')) {
@@ -85,4 +93,38 @@ const watchAll = (obj, options) => {
     return () => unwatches.forEach(unwatch => unwatch());
 };
 
-export { watch, watchAll };
+const watchDeep = (obj, options) => {
+    const unwatches = [];
+    if (Object.keys(obj) && Object.keys(obj).length > 0 && typeof obj !== 'string' && (typeof obj === 'object' || Array.isArray(obj))) {
+        unwatches.push(watchAll(obj, options));
+        Object.keys(obj).forEach(key => {
+            watchDeep(obj[key], options);
+        });
+    } else {
+        return () => unwatches.forEach(unwatch => unwatch());
+    }
+}
+
+const deep = {
+    userData: {
+        name: 'Clark', 
+        age: 30,
+    },
+    gameData: {
+        position: {
+            first: {
+                property: 'Today morning',
+                profit: 23467,
+                loaders: [30, 15, 60, 88],
+            },
+            second: {
+                property: 'End of the week',
+                profit: 99999,
+            }
+        }
+    }
+}
+
+const unwatch = watchDeep(deep);
+
+// export { watch, watchAll };
